@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📔 我的日记本</title>
+<style>
+/* ===== CSS Variables & Reset ===== */
+:root {
+  --bg: #fdf6ec;
+  --card-bg: #fffef9;
+  --text: #3e3232;
+  --text-light: #6b5e5e;
+  --accent: #c4956a;
+  --accent-dark: #a0764a;
+  --border: #e0d5c7;
+  --tag-original: #7a9e7e;
+  --tag-supplement: #8b7a9e;
+  --highlight: #fff3b0;
+  --danger: #e07070;
+  --danger-dark: #c85555;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --font: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+.container { max-width: 760px; margin: 0 auto; padding: 20px 16px 60px; }
+
+/* ===== Header ===== */
+.header { text-align: center; padding: 28px 0 10px; border-bottom: 2px solid var(--border); margin-bottom: 20px; position: relative; }
+.header h1 { font-size: 28px; color: var(--accent-dark); letter-spacing: 2px; }
+.header .subtitle { font-size: 13px; color: var(--text-light); margin-top: 4px; }
+.header .user-bar { position: absolute; right: 0; top: 34px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-light); }
+.header .user-bar .username { font-weight: 600; color: var(--accent-dark); }
+
+/* ===== Tabs ===== */
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card-bg); border-radius: var(--radius); padding: 5px; box-shadow: var(--shadow); }
+.tab-btn { flex: 1; padding: 12px 8px; border: none; background: transparent; font-size: 15px; cursor: pointer; border-radius: 9px; color: var(--text-light); transition: all 0.25s; font-family: var(--font); font-weight: 500; }
+.tab-btn:hover { color: var(--accent-dark); background: rgba(196,149,106,0.08); }
+.tab-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+.tab-panel { display: none; animation: fadeIn 0.3s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== Auth View ===== */
+.auth-container { max-width: 420px; margin: 60px auto; background: var(--card-bg); border-radius: var(--radius); padding: 40px 32px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid var(--border); text-align: center; }
+.auth-container .auth-icon { font-size: 48px; margin-bottom: 12px; }
+.auth-container h2 { font-size: 22px; color: var(--accent-dark); margin-bottom: 6px; }
+.auth-container .auth-subtitle { font-size: 13px; color: var(--text-light); margin-bottom: 24px; }
+.auth-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--bg); border-radius: 8px; padding: 4px; }
+.auth-tab { flex: 1; padding: 10px; border: none; background: transparent; font-size: 14px; cursor: pointer; border-radius: 6px; color: var(--text-light); font-family: var(--font); font-weight: 500; transition: all 0.25s; }
+.auth-tab.active { background: #fff; color: var(--accent-dark); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.auth-form { text-align: left; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.form-group .hint { font-size: 12px; color: var(--text-light); font-weight: 400; }
+input[type="date"], input[type="text"], input[type="password"], textarea {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: 15px; font-family: var(--font); background: var(--bg); color: var(--text);
+  transition: border-color 0.25s; outline: none;
+}
+input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196,149,106,0.12); }
+textarea { min-height: 180px; resize: vertical; line-height: 1.8; }
+
+/* ===== Buttons ===== */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 24px; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all 0.25s; }
+.btn-primary { background: var(--accent); color: #fff; width: 100%; justify-content: center; }
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(196,149,106,0.3); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn-outline:hover { background: rgba(196,149,106,0.08); }
+.btn-sm { padding: 6px 14px; font-size: 13px; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: var(--danger-dark); }
+.btn-text { background: transparent; color: var(--text-light); padding: 6px 10px; font-size: 13px; font-weight: 500; }
+.btn-text:hover { color: var(--danger); }
+
+/* ===== Section Titles ===== */
+.section-title { font-size: 16px; font-weight: 600; color: var(--accent-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+/* ===== Form Card ===== */
+.form-card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 20px; }
+
+/* ===== File Upload ===== */
+.file-upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.25s; background: var(--bg); }
+.file-upload-area:hover { border-color: var(--accent); background: rgba(196,149,106,0.04); }
+.file-upload-area .icon { font-size: 32px; margin-bottom: 6px; }
+.file-upload-area p { font-size: 13px; color: var(--text-light); }
+.file-upload-area input[type="file"] { display: none; }
+.file-list { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; }
+.file-item { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+.file-item .remove-file { cursor: pointer; color: var(--danger); font-weight: 700; font-size: 16px; line-height: 1; }
+.file-item .remove-file:hover { color: var(--danger-dark); }
+.file-item img.preview-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 4px; }
+
+/* ===== Diary Cards ===== */
+.diary-card { background: var(--card-bg); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); border-left: 4px solid var(--accent); }
+.diary-card.supplement { border-left-color: var(--tag-supplement); }
+.card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.card-date { font-size: 16px; font-weight: 700; color: var(--accent-dark); }
+.card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; color: #fff; }
+.badge.original { background: var(--tag-original); }
+.badge.supplement { background: var(--tag-supplement); }
+.badge.time { background: #b0b0b0; }
+.card-content { white-space: pre-wrap; word-break: break-word; line-height: 1.9; font-size: 15px; margin-bottom: 12px; }
+.card-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.attachment-link { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; background: var(--bg); border-radius: 6px; font-size: 13px; color: var(--accent-dark); text-decoration: none; border: 1px solid var(--border); transition: all 0.2s; }
+.attachment-link:hover { border-color: var(--accent); background: rgba(196,149,106,0.08); }
+.attachment-image { max-width: 100%; max-height: 300px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); transition: transform 0.2s; }
+.attachment-image:hover { transform: scale(1.02); }
+
+/* ===== Supplement Divider ===== */
+.supplement-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; color: var(--text-light); font-size: 13px; }
+.supplement-divider::before, .supplement-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ===== Search ===== */
+.search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+.search-box input { flex: 1; }
+.search-results { margin-top: 16px; }
+.search-result-item { background: var(--card-bg); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+.search-result-item:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.search-result-date { font-weight: 700; color: var(--accent-dark); margin-bottom: 6px; }
+.search-result-excerpt { font-size: 14px; color: var(--text); line-height: 1.7; }
+.search-result-excerpt mark { background: var(--highlight); padding: 1px 4px; border-radius: 3px; }
+
+/* ===== Empty State ===== */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 15px; }
+
+/* ===== Loading ===== */
+.loading { text-align: center; padding: 40px; color: var(--text-light); }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== Toast ===== */
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #4a4a4a; color: #fff; padding: 12px 28px; border-radius: 30px; font-size: 14px; font-weight: 600; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.2); animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
+.toast.error { background: var(--danger); }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* ===== Responsive ===== */
+@media (max-width: 500px) {
+  .container { padding: 12px 10px 40px; }
+  .header h1 { font-size: 22px; }
+  .header .user-bar { position: static; justify-content: center; margin-top: 8px; }
+  .form-card { padding: 16px; }
+  .tabs { gap: 2px; padding: 3px; }
+  .tab-btn { font-size: 13px; padding: 10px 4px; }
+  .card-header { flex-direction: column; align-items: flex-start; }
+  .search-box { flex-direction: column; }
+  .auth-container { margin: 20px auto; padding: 24px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Supabase JS SDK (UMD build via CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<div id="app">
+  <!-- ===== Auth View ===== -->
+  <div id="auth-view">
+    <div class="auth-container">
+      <div class="auth-icon">📔</div>
+      <h2>我的日记本</h2>
+      <p class="auth-subtitle">登录或注册以开始记录</p>
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-auth-tab="login">登录</button>
+        <button class="auth-tab" data-auth-tab="register">注册</button>
+      </div>
+      <div class="auth-form" id="auth-form-login">
+        <div class="form-group"><label>用户名</label><input type="text" id="login-username" placeholder="请输入用户名" autocomplete="username"></div>
+        <div class="form-group"><label>密码</label><input type="password" id="login-password" placeholder="请输入密码" autocomplete="current-password"></div>
+        <button class="btn btn-primary" id="btn-login">🔑 登录</button>
+        <p style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-light);">还没有账号？<a href="javascript:void(0)" id="link-to-register" style="color:var(--accent-dark);font-weight:600;">立即注册</a></p>
+      </div>
+      <div class="auth-form" id="auth-form-register" style="display:none;">
+        <div class="form-group"><label>用户名 <span class="hint">（3-20 个字符）</span></label><input type="text" id="reg-username" placeholder="请设置用户名" autocomplete="off"></div>
+        <div class="form-group"><label>密码 <span class="hint">（至少 6 位）</span></label><input type="password" id="reg-password" placeholder="请设置密码" autocomplete="new-password"></div>
+        <div class="form-group"><label>确认密码</label><input type="password" id="reg-password2" placeholder="请再次输入密码" autocomplete="new-password"></div>
+        <button class="btn btn-primary" id="btn-register">✨ 注册</button>
+        <p style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-light);">已有账号？<a href="javascript:void(0)" id="link-to-login" style="color:var(--accent-dark);font-weight:600;">去登录</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Diary View (hidden initially) ===== -->
+  <div id="diary-view" style="display:none;">
+    <div class="container">
+      <div class="header">
+        <h1>📔 我的日记本</h1>
+        <p class="subtitle">记录生活，每一天都值得被记住</p>
+        <div class="user-bar">
+          <span>👤 <span class="username" id="display-username"></span></span>
+          <button class="btn btn-text" id="btn-logout">退出登录</button>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="write">✏️ 写日记</button>
+        <button class="tab-btn" data-tab="supplement">📝 补充日记</button>
+        <button class="tab-btn" data-tab="search">🔍 查找日记</button>
+      </div>
+
+      <!-- Tab 1: Write -->
+      <div class="tab-panel active" id="panel-write">
+        <div class="form-card">
+          <div class="section-title">✏️ 写日记</div>
+          <div class="form-group"><label>选择日期 <span class="hint">（默认为今天）</span></label><input type="date" id="write-date"></div>
+          <div class="form-group"><label>日记内容</label><textarea id="write-content" placeholder="今天发生了什么有趣的事情呢？写下来吧..."></textarea></div>
+          <div class="form-group">
+            <label>附件 <span class="hint">（可选，支持图片和文档，单文件不超过 2MB）</span></label>
+            <div class="file-upload-area" id="write-file-area"><div class="icon">📎</div><p>点击此处选择文件，或拖拽文件到此处</p><input type="file" id="write-file-input" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"></div>
+            <div class="file-list" id="write-file-list"></div>
+          </div>
+          <button class="btn btn-primary" id="btn-save-diary">💾 保存日记</button>
+        </div>
+        <div id="write-saved-area" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- Tab 2: Supplement -->
+      <div class="tab-panel" id="panel-supplement">
+        <div class="form-card">
+          <div class="section-title">📝 补充日记</div>
+          <div class="form-group"><label>选择要补充的日记日期</label><input type="date" id="supplement-date"></div>
+          <div id="supplement-original-area"></div>
+          <div id="supplement-form-area" style="display:none;">
+            <div class="supplement-divider">⬇️ 以下为补充内容 ⬇️</div>
+            <div class="form-group"><label>补充内容</label><textarea id="supplement-content" placeholder="对当天的日记进行补充..."></textarea></div>
+            <div class="form-group">
+              <label>附件 <span class="hint">（可选）</span></label>
+              <div class="file-upload-area" id="supplement-file-area"><div class="icon">📎</div><p>点击此处选择文件</p><input type="file" id="supplement-file-input" multiple accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx"></div>
+              <div class="file-list" id="supplement-file-list"></div>
+            </div>
+            <button class="btn btn-primary" id="btn-save-supplement">💾 保存补充</button>
+          </div>
+        </div>
+        <div id="supplement-saved-area" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- Tab 3: Search -->
+      <div class="tab-panel" id="panel-search">
+        <div class="form-card">
+          <div class="section-title">📅 按日期查找</div>
+          <div class="form-group"><label>选择日期</label><div style="display:flex;gap:10px;"><input type="date" id="search-date" style="flex:1;"><button class="btn btn-primary btn-sm" id="btn-search-date">查找</button></div></div>
+          <div id="search-date-results"></div>
+        </div>
+        <div class="form-card">
+          <div class="section-title">🔑 关键词搜索</div>
+          <div class="search-box"><input type="text" id="search-keyword" placeholder="输入关键词搜索日记内容..."><button class="btn btn-primary" id="btn-search-keyword" style="width:auto;">🔍 搜索</button></div>
+          <div class="search-results" id="search-keyword-results"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ============================================================
+// Supabase 配置 — 请替换为你的项目信息
+// ============================================================
+// 在 supabase.com 创建项目后，将以下两个值替换：
+const SUPABASE_URL = 'https://npjefzwgklcaxdsryprj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5wamVmendna2xjYXhkc3J5cHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NTUwOTMsImV4cCI6MjA5ODIzMTA5M30.sKXk30KuXNbhYWhMGF5P5EwMv7NbObUnw3KXXiYGQ34';
+
+// ============================================================
+// Supabase 客户端初始化
+// ============================================================
+let supabaseClient = null;
+
+function initSupabase() {
+  if (SUPABASE_URL.includes('YOUR_PROJECT_ID')) {
+    document.getElementById('auth-view').innerHTML =
+      '<div class="auth-container"><div class="auth-icon">⚙️</div><h2>需要配置</h2><p style="font-size:14px;color:var(--text-light);margin-top:12px;">请先在 <strong>supabase.com</strong> 创建项目，然后将<br><code>SUPABASE_URL</code> 和 <code>SUPABASE_ANON_KEY</code><br>填入 <code>index.html</code> 顶部的配置中。</p><p style="font-size:13px;color:var(--text-light);margin-top:16px;">详细步骤请查看 <strong>README.md</strong></p></div>';
+    return false;
+  }
+  try {
+    // supabase is exposed globally by the CDN UMD build
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch (e) {
+    console.error('Supabase init error:', e);
+    return false;
+  }
+}
+
+// ============================================================
+// Auth 相关
+// ============================================================
+const DIARY_DOMAIN = '@diary.local';
+
+function usernameToEmail(username) {
+  return username + DIARY_DOMAIN;
+}
+
+function emailToUsername(email) {
+  if (email && email.endsWith(DIARY_DOMAIN)) {
+    return email.slice(0, -DIARY_DOMAIN.length);
+  }
+  return email || '';
+}
+
+async function getCurrentUser() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data?.session?.user || null;
+}
+
+async function handleLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!username || !password) { showToast('⚠️ 请输入用户名和密码', 'error'); return; }
+
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = '登录中...';
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: usernameToEmail(username),
+      password: password
+    });
+    if (error) {
+      let msg = error.message;
+      if (error.message.includes('Invalid login credentials')) msg = '用户名或密码错误';
+      showToast('⚠️ ' + msg, 'error');
+    } else {
+      onLoginSuccess(username);
+    }
+  } catch (e) {
+    showToast('⚠️ 登录失败：' + (e.message || '网络错误'), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '🔑 登录';
+  }
+}
+
+async function handleRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const password2 = document.getElementById('reg-password2').value;
+
+  if (!username || !password) { showToast('⚠️ 请填写用户名和密码', 'error'); return; }
+  if (username.length < 3 || username.length > 20) { showToast('⚠️ 用户名需要 3-20 个字符', 'error'); return; }
+  if (!/^[a-zA-Z0-9_一-龥]+$/.test(username)) { showToast('⚠️ 用户名只能包含中英文、数字和下划线', 'error'); return; }
+  if (password.length < 6) { showToast('⚠️ 密码至少需要 6 位', 'error'); return; }
+  if (password !== password2) { showToast('⚠️ 两次输入的密码不一致', 'error'); return; }
+
+  const btn = document.getElementById('btn-register');
+  btn.disabled = true; btn.textContent = '注册中...';
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: usernameToEmail(username),
+      password: password,
+      options: { data: { username: username } }
+    });
+    if (error) {
+      let msg = error.message;
+      if (error.message.includes('already registered') || error.message.includes('already exists')) {
+        msg = '用户名已存在，请换一个';
+      }
+      showToast('⚠️ ' + msg, 'error');
+    } else if (data?.user?.identities?.length === 0) {
+      showToast('⚠️ 用户名已存在，请换一个', 'error');
+    } else {
+      // 注册成功 — 如果 session 为空，说明邮箱验证拦截了，补调登录
+      if (!data.session) {
+        const { error: loginErr } = await supabaseClient.auth.signInWithPassword({
+          email: usernameToEmail(username),
+          password: password
+        });
+        if (loginErr) {
+          showToast('⚠️ 注册成功但登录失败，请返回登录页手动登录', 'error');
+          btn.disabled = false; btn.textContent = '✨ 注册';
+          return;
+        }
+      }
+      showToast('✅ 注册成功！');
+      onLoginSuccess(username);
+    }
+  } catch (e) {
+    showToast('⚠️ 注册失败：' + (e.message || '网络错误'), 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '✨ 注册';
+  }
+}
+
+function onLoginSuccess(username) {
+  document.getElementById('display-username').textContent = username;
+  document.getElementById('auth-view').style.display = 'none';
+  document.getElementById('diary-view').style.display = 'block';
+  showToast('✅ 登录成功！');
+  onDiaryReady();
+}
+
+async function handleLogout() {
+  if (!confirm('确定要退出登录吗？')) return;
+  await supabaseClient.auth.signOut();
+  document.getElementById('auth-view').style.display = 'block';
+  document.getElementById('diary-view').style.display = 'none';
+  showToast('👋 已退出登录');
+}
+
+// ============================================================
+// 数据层 (Supabase)
+// ============================================================
+const TABLE = 'diary_entries';
+
+async function saveEntry(date, entry) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error('未登录');
+  const { error } = await supabaseClient.from(TABLE).insert({
+    user_id: user.id,
+    date: date,
+    entry_id: entry.entryId,
+    type: entry.type,
+    content: entry.content,
+    attachments: entry.attachments || [],
+    timestamp: new Date().toISOString()
+  });
+  if (error) throw error;
+}
+
+async function getEntries(date) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('date', date)
+    .order('timestamp', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function deleteEntryDoc(id) {
+  const { error } = await supabaseClient.from(TABLE).delete().eq('id', id);
+  if (error) throw error;
+}
+
+async function searchByKeyword(keyword) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  // 使用 PostgreSQL ilike 进行模糊搜索
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .select('*')
+    .eq('user_id', user.id)
+    .ilike('content', `%${keyword}%`)
+    .order('date', { ascending: false })
+    .order('timestamp', { ascending: false })
+    .limit(100);
+  if (error) throw error;
+
+  // 按日期分组
+  const results = [];
+  for (const entry of (data || [])) {
+    results.push({ date: entry.date, entry, matchContent: entry.content });
+  }
+  return results;
+}
+
+// ============================================================
+// Utility
+// ============================================================
+function generateId() {
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function formatTimestamp(iso) {
+  const d = new Date(iso);
+  const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0'), h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0'), s = String(d.getSeconds()).padStart(2, '0');
+  return `${y}-${m}-${day} ${h}:${min}:${s}`;
+}
+
+function formatDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${y}年${m}月${d}日`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function showToast(msg, type) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const el = document.createElement('div');
+  el.className = 'toast' + (type === 'error' ? ' error' : '');
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.remove(); }, 2200);
+}
+
+// ============================================================
+// File Manager
+// ============================================================
+function readFilesAsBase64(fileList) {
+  const MAX_SIZE = 2 * 1024 * 1024;
+  return Promise.all(Array.from(fileList).map(file => {
+    if (file.size > MAX_SIZE) {
+      showToast('⚠️ 文件 "' + file.name.substring(0, 20) + '" 超过 2MB，已跳过', 'error');
+      return null;
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve({ name: file.name, data: reader.result, mimeType: file.type, size: file.size });
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  })).then(r => r.filter(Boolean));
+}
+
+class FileManager {
+  constructor(fileInputId, fileListId, fileAreaId) {
+    this.fileInput = document.getElementById(fileInputId);
+    this.fileList = document.getElementById(fileListId);
+    this.fileArea = document.getElementById(fileAreaId);
+    this.selectedFiles = [];
+    this.attachments = [];
+    this.setupListeners();
+  }
+  setupListeners() {
+    if (!this.fileArea || !this.fileInput) return;
+    this.fileArea.addEventListener('click', () => this.fileInput.click());
+    this.fileInput.addEventListener('change', (e) => { this.addFiles(Array.from(e.target.files)); this.fileInput.value = ''; });
+    this.fileArea.addEventListener('dragover', (e) => { e.preventDefault(); this.fileArea.style.borderColor = 'var(--accent)'; });
+    this.fileArea.addEventListener('dragleave', () => { this.fileArea.style.borderColor = 'var(--border)'; });
+    this.fileArea.addEventListener('drop', (e) => { e.preventDefault(); this.fileArea.style.borderColor = 'var(--border)'; this.addFiles(Array.from(e.dataTransfer.files)); });
+  }
+  addFiles(files) {
+    for (const f of files) {
+      if (this.selectedFiles.some(sf => sf.name === f.name && sf.size === f.size)) continue;
+      this.selectedFiles.push(f);
+    }
+    this.renderFileList();
+  }
+  removeFile(index) { this.selectedFiles.splice(index, 1); this.renderFileList(); }
+  renderFileList() {
+    if (!this.fileList) return;
+    this.fileList.innerHTML = '';
+    for (let i = 0; i < this.selectedFiles.length; i++) {
+      const f = this.selectedFiles[i], item = document.createElement('div');
+      item.className = 'file-item';
+      if (f.type.startsWith('image/')) {
+        const url = URL.createObjectURL(f), img = document.createElement('img');
+        img.src = url; img.className = 'preview-thumb'; item.appendChild(img);
+      }
+      const name = document.createElement('span');
+      name.textContent = f.name.length > 20 ? f.name.substring(0, 20) + '...' : f.name;
+      item.appendChild(name);
+      const rm = document.createElement('span');
+      rm.className = 'remove-file'; rm.textContent = '×'; rm.title = '移除';
+      rm.addEventListener('click', (e) => { e.stopPropagation(); this.removeFile(i); });
+      item.appendChild(rm);
+      this.fileList.appendChild(item);
+    }
+  }
+  async processFiles() { this.attachments = await readFilesAsBase64(this.selectedFiles); return this.attachments; }
+  clear() { this.selectedFiles = []; this.attachments = []; if (this.fileList) this.fileList.innerHTML = ''; }
+  hasFiles() { return this.selectedFiles.length > 0; }
+}
+
+// ============================================================
+// Entry Rendering
+// ============================================================
+function renderEntryCard(entry, date, showDate) {
+  const card = document.createElement('div');
+  card.className = 'diary-card ' + (entry.type === 'supplement' ? 'supplement' : '');
+  card.dataset.docId = entry.id;
+
+  let html = '<div class="card-header">';
+  if (showDate) html += `<span class="card-date">📅 ${formatDate(date)}</span>`;
+  html += '<div class="card-meta">';
+  html += `<span class="badge ${entry.type || 'original'}">${entry.type === 'supplement' ? '补充' : '原创'}</span>`;
+  html += `<span class="badge time">🕐 ${formatTimestamp(entry.timestamp)}</span>`;
+  html += '</div></div>';
+  html += `<div class="card-content">${escapeHtml(entry.content || '')}</div>`;
+
+  if (entry.attachments && entry.attachments.length > 0) {
+    html += '<div class="card-attachments">';
+    for (const att of entry.attachments) {
+      if (att.mimeType && att.mimeType.startsWith('image/')) {
+        html += `<img src="${att.data}" alt="${escapeHtml(att.name)}" class="attachment-image" title="${escapeHtml(att.name)}" onclick="var s=this.style;s.maxHeight=s.maxHeight==='none'?'300px':'none';">`;
+      } else {
+        html += `<a href="${att.data}" download="${escapeHtml(att.name)}" class="attachment-link">📄 ${escapeHtml(att.name)}</a>`;
+      }
+    }
+    html += '</div>';
+  }
+  html += `<div style="margin-top:12px;text-align:right;"><button class="btn btn-outline btn-sm btn-delete-entry" data-doc-id="${entry.id}" data-date="${date}">🗑️ 删除此条</button></div>`;
+  card.innerHTML = html;
+  return card;
+}
+
+function highlightKeyword(text, keyword) {
+  const escaped = escapeHtml(text);
+  if (!keyword) return escaped;
+  const escapedKw = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(`(${escapedKw})`, 'gi'), '<mark>$1</mark>');
+}
+
+// ============================================================
+// Tab Management
+// ============================================================
+let currentTab = 'write';
+
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll('#diary-view .tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#diary-view .tab-panel').forEach(p => p.classList.remove('active'));
+  const btn = document.querySelector(`#diary-view [data-tab="${tabName}"]`);
+  const panel = document.getElementById(`panel-${tabName}`);
+  if (btn) btn.classList.add('active');
+  if (panel) panel.classList.add('active');
+  if (tabName === 'supplement') loadSupplementOriginal();
+}
+
+// ============================================================
+// Write Diary
+// ============================================================
+async function saveDiary() {
+  const date = document.getElementById('write-date').value;
+  const content = document.getElementById('write-content').value.trim();
+  if (!date) { showToast('⚠️ 请选择日期', 'error'); return; }
+  if (!content) { showToast('⚠️ 请输入日记内容', 'error'); return; }
+
+  const attachments = await writeFileMgr.processFiles();
+  const entry = { entryId: generateId(), type: 'original', content, attachments };
+
+  try {
+    await saveEntry(date, entry);
+    showToast('✅ 日记保存成功！');
+    document.getElementById('write-content').value = '';
+    writeFileMgr.clear();
+    refreshWriteSaved(date);
+  } catch (e) {
+    showToast('⚠️ 保存失败：' + (e.message || '未知错误'), 'error');
+  }
+}
+
+async function refreshWriteSaved(date) {
+  const area = document.getElementById('write-saved-area');
+  try {
+    const entries = await getEntries(date);
+    if (entries.length === 0) { area.innerHTML = ''; return; }
+    let html = `<div class="section-title" style="margin-top:8px;">📋 ${formatDate(date)} 的日记</div>`;
+    for (const entry of entries) html += renderEntryCard(entry, date, false).outerHTML;
+    area.innerHTML = html;
+  } catch (e) { area.innerHTML = ''; }
+}
+
+// ============================================================
+// Supplement Diary
+// ============================================================
+async function loadSupplementOriginal() {
+  const date = document.getElementById('supplement-date').value;
+  const originalArea = document.getElementById('supplement-original-area');
+  const formArea = document.getElementById('supplement-form-area');
+  const savedArea = document.getElementById('supplement-saved-area');
+  savedArea.innerHTML = '';
+  if (!date) { originalArea.innerHTML = ''; formArea.style.display = 'none'; return; }
+
+  try {
+    const entries = await getEntries(date);
+    if (entries.length === 0) {
+      originalArea.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>该日期还没有日记，请先写日记再补充</p></div>';
+      formArea.style.display = 'none';
+      return;
+    }
+    let html = '';
+    for (const entry of entries) html += renderEntryCard(entry, date, true).outerHTML;
+    originalArea.innerHTML = html;
+    formArea.style.display = 'block';
+    document.getElementById('supplement-content').value = '';
+    supplementFileMgr.clear();
+    refreshSupplementSaved(date);
+  } catch (e) { originalArea.innerHTML = ''; }
+}
+
+async function refreshSupplementSaved(date) {
+  const savedArea = document.getElementById('supplement-saved-area');
+  try {
+    const entries = await getEntries(date);
+    const supps = entries.filter(e => e.type === 'supplement');
+    if (supps.length === 0) { savedArea.innerHTML = ''; return; }
+    let html = '';
+    for (const s of supps) html += renderEntryCard(s, date, true).outerHTML;
+    savedArea.innerHTML = html;
+  } catch (e) { savedArea.innerHTML = ''; }
+}
+
+async function saveSupplement() {
+  const date = document.getElementById('supplement-date').value;
+  const content = document.getElementById('supplement-content').value.trim();
+  if (!date) { showToast('⚠️ 请选择日期', 'error'); return; }
+  if (!content) { showToast('⚠️ 请输入补充内容', 'error'); return; }
+
+  const entries = await getEntries(date);
+  if (entries.length === 0) { showToast('⚠️ 该日期没有原日记', 'error'); return; }
+
+  const attachments = await supplementFileMgr.processFiles();
+  const entry = { entryId: generateId(), type: 'supplement', content, attachments };
+
+  try {
+    await saveEntry(date, entry);
+    showToast('✅ 补充内容保存成功！');
+    document.getElementById('supplement-content').value = '';
+    supplementFileMgr.clear();
+    refreshSupplementSaved(date);
+  } catch (e) {
+    showToast('⚠️ 保存失败：' + (e.message || '未知错误'), 'error');
+  }
+}
+
+// ============================================================
+// Search
+// ============================================================
+async function searchByDate() {
+  const date = document.getElementById('search-date').value;
+  const resultsArea = document.getElementById('search-date-results');
+  if (!date) { resultsArea.innerHTML = ''; return; }
+  try {
+    const entries = await getEntries(date);
+    if (entries.length === 0) {
+      resultsArea.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${formatDate(date)} 没有日记记录</p></div>`;
+      return;
+    }
+    let html = '';
+    for (const entry of entries) html += renderEntryCard(entry, date, true).outerHTML;
+    resultsArea.innerHTML = html;
+  } catch (e) { resultsArea.innerHTML = ''; }
+}
+
+async function searchByKeywordHandler() {
+  const keyword = document.getElementById('search-keyword').value.trim();
+  const resultsArea = document.getElementById('search-keyword-results');
+  if (!keyword) { showToast('⚠️ 请输入搜索关键词', 'error'); return; }
+
+  try {
+    const results = await searchByKeyword(keyword);
+    if (results.length === 0) {
+      resultsArea.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>未找到包含"<strong>${escapeHtml(keyword)}</strong>"的日记</p></div>`;
+      return;
+    }
+    let html = `<p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">找到 <strong>${results.length}</strong> 条包含"<strong>${escapeHtml(keyword)}</strong>"的日记：</p>`;
+    for (const { date, entry, matchContent } of results) {
+      const kwIdx = matchContent.toLowerCase().indexOf(keyword.toLowerCase());
+      const start = Math.max(0, kwIdx - 30), end = Math.min(matchContent.length, kwIdx + keyword.length + 50);
+      let excerpt = (start > 0 ? '...' : '') + matchContent.substring(start, end) + (end < matchContent.length ? '...' : '');
+      html += `<div class="search-result-item" onclick="viewEntry('${date}')">
+        <div class="search-result-date">📅 ${formatDate(date)} · <span class="badge ${entry.type || 'original'}">${entry.type === 'supplement' ? '补充' : '原创'}</span> · <span style="font-size:12px;color:var(--text-light);">${formatTimestamp(entry.timestamp)}</span></div>
+        <div class="search-result-excerpt">${highlightKeyword(excerpt, keyword)}</div>
+      </div>`;
+    }
+    resultsArea.innerHTML = html;
+  } catch (e) { resultsArea.innerHTML = ''; }
+}
+
+function viewEntry(date) {
+  document.getElementById('search-date').value = date;
+  searchByDate();
+  document.getElementById('search-date-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+// Delete
+// ============================================================
+async function handleDelete(docId, date) {
+  if (!confirm('确定要删除这条日记记录吗？此操作不可恢复。')) return;
+  try {
+    await deleteEntryDoc(docId);
+    showToast('🗑️ 已删除');
+    if (currentTab === 'write') refreshWriteSaved(date);
+    else if (currentTab === 'supplement') loadSupplementOriginal();
+    else if (currentTab === 'search') searchByDate();
+  } catch (e) { showToast('⚠️ 删除失败', 'error'); }
+}
+
+// ============================================================
+// Init
+// ============================================================
+let writeFileMgr, supplementFileMgr;
+
+function onDiaryReady() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('write-date').value = today;
+  document.getElementById('supplement-date').value = today;
+  document.getElementById('search-date').value = today;
+
+  writeFileMgr = new FileManager('write-file-input', 'write-file-list', 'write-file-area');
+  supplementFileMgr = new FileManager('supplement-file-input', 'supplement-file-list', 'supplement-file-area');
+
+  document.querySelectorAll('#diary-view .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+  document.getElementById('btn-save-diary').addEventListener('click', saveDiary);
+  document.getElementById('supplement-date').addEventListener('change', loadSupplementOriginal);
+  document.getElementById('btn-save-supplement').addEventListener('click', saveSupplement);
+  document.getElementById('btn-search-date').addEventListener('click', searchByDate);
+  document.getElementById('search-date').addEventListener('change', searchByDate);
+  document.getElementById('btn-search-keyword').addEventListener('click', searchByKeywordHandler);
+  document.getElementById('search-keyword').addEventListener('keydown', e => { if (e.key === 'Enter') searchByKeywordHandler(); });
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.btn-delete-entry');
+    if (btn) handleDelete(btn.dataset.docId, btn.dataset.date);
+  });
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (currentTab === 'write') saveDiary();
+      else if (currentTab === 'supplement') saveSupplement();
+    }
+  });
+
+  switchTab('write');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!initSupabase()) return; // Shows config-needed message
+
+  // Check existing session
+  const user = await getCurrentUser();
+  if (user) {
+    document.getElementById('display-username').textContent = emailToUsername(user.email);
+    document.getElementById('auth-view').style.display = 'none';
+    document.getElementById('diary-view').style.display = 'block';
+    onDiaryReady();
+  } else {
+    document.getElementById('auth-view').style.display = 'block';
+    document.getElementById('diary-view').style.display = 'none';
+  }
+
+  // Auth tab switching
+  document.querySelectorAll('.auth-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.authTab;
+      document.getElementById('auth-form-login').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('auth-form-register').style.display = tab === 'register' ? 'block' : 'none';
+    });
+  });
+  document.getElementById('link-to-register').addEventListener('click', () => document.querySelector('[data-auth-tab="register"]').click());
+  document.getElementById('link-to-login').addEventListener('click', () => document.querySelector('[data-auth-tab="login"]').click());
+  document.getElementById('btn-login').addEventListener('click', handleLogin);
+  document.getElementById('btn-register').addEventListener('click', handleRegister);
+  document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  document.getElementById('reg-password2').addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+  document.getElementById('btn-logout').addEventListener('click', handleLogout);
+});
+</script>
+</body>
+</html>
