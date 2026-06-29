@@ -358,31 +358,60 @@ async function handleRegister() {
   if (password.length < 6) { showToast('⚠️ 密码至少需要 6 位', 'error'); return; }
   if (password !== password2) { showToast('⚠️ 两次输入的密码不一致', 'error'); return; }
 
+  // 检查是否已配置 Supabase
+  if (SUPABASE_URL.includes('YOUR_PROJECT_ID')) {
+    showToast('⚠️ 请先配置 SUPABASE_URL 和 SUPABASE_ANON_KEY', 'error');
+    return;
+  }
+
   const btn = document.getElementById('btn-register');
   btn.disabled = true; btn.textContent = '注册中...';
   try {
+    const email = usernameToEmail(username);
+    console.log('注册邮箱:', email);
+
     const { data, error } = await supabaseClient.auth.signUp({
-      email: usernameToEmail(username),
+      email: email,
       password: password,
       options: { data: { username: username } }
     });
+
+    console.log('注册返回 data:', JSON.stringify(data));
+    console.log('注册返回 error:', JSON.stringify(error));
+
     if (error) {
-      let msg = error.message;
-      if (error.message.includes('already registered') || error.message.includes('already exists')) {
+      let msg = '注册失败';
+      if (typeof error === 'object') {
+        msg = error.message || error.msg || JSON.stringify(error);
+      } else {
+        msg = String(error);
+      }
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('already been')) {
         msg = '用户名已存在，请换一个';
       }
+      if (msg.includes('valid email') || msg.includes('email')) {
+        msg = '邮箱格式有问题，请用纯英文用户名试试（如 zhangsan）';
+      }
       showToast('⚠️ ' + msg, 'error');
+    } else if (!data || !data.user) {
+      showToast('⚠️ 注册返回为空，请检查 Supabase 配置', 'error');
     } else if (data?.user?.identities?.length === 0) {
       showToast('⚠️ 用户名已存在，请换一个', 'error');
     } else {
       // 注册成功 — 如果 session 为空，说明邮箱验证拦截了，补调登录
       if (!data.session) {
         const { error: loginErr } = await supabaseClient.auth.signInWithPassword({
-          email: usernameToEmail(username),
+          email: email,
           password: password
         });
+        console.log('补登录 error:', JSON.stringify(loginErr));
         if (loginErr) {
-          showToast('⚠️ 注册成功但登录失败，请返回登录页手动登录', 'error');
+          let loginMsg = loginErr.message || JSON.stringify(loginErr);
+          if (loginMsg.includes('not confirmed') || loginMsg.includes('Email not confirmed')) {
+            showToast('⚠️ 邮箱未验证，请检查 setup.sql 中的 auto_confirm_user 触发器是否已运行', 'error');
+          } else {
+            showToast('⚠️ ' + loginMsg, 'error');
+          }
           btn.disabled = false; btn.textContent = '✨ 注册';
           return;
         }
@@ -391,7 +420,8 @@ async function handleRegister() {
       onLoginSuccess(username);
     }
   } catch (e) {
-    showToast('⚠️ 注册失败：' + (e.message || '网络错误'), 'error');
+    console.error('注册异常:', e);
+    showToast('⚠️ 注册异常：' + (e.message || JSON.stringify(e) || '网络错误'), 'error');
   } finally {
     btn.disabled = false; btn.textContent = '✨ 注册';
   }
