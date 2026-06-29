@@ -178,7 +178,7 @@ textarea { min-height: 180px; resize: vertical; line-height: 1.8; }
         <p style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-light);">还没有账号？<a href="javascript:void(0)" id="link-to-register" style="color:var(--accent-dark);font-weight:600;">立即注册</a></p>
       </div>
       <div class="auth-form" id="auth-form-register" style="display:none;">
-        <div class="form-group"><label>用户名 <span class="hint">（3-20 个字符）</span></label><input type="text" id="reg-username" placeholder="请设置用户名" autocomplete="off"></div>
+        <div class="form-group"><label>用户名 <span class="hint">（3-20 个字符，支持中英文）</span></label><input type="text" id="reg-username" placeholder="请设置用户名" autocomplete="off"></div>
         <div class="form-group"><label>密码 <span class="hint">（至少 6 位）</span></label><input type="password" id="reg-password" placeholder="请设置密码" autocomplete="new-password"></div>
         <div class="form-group"><label>确认密码</label><input type="password" id="reg-password2" placeholder="请再次输入密码" autocomplete="new-password"></div>
         <button class="btn btn-primary" id="btn-register">✨ 注册</button>
@@ -292,15 +292,26 @@ function initSupabase() {
 // ============================================================
 // Auth 相关
 // ============================================================
-const DIARY_DOMAIN = '@diary.local';
+const DIARY_DOMAIN = '@diarynet.app';
 
 function usernameToEmail(username) {
-  return username + DIARY_DOMAIN;
+  // 纯英文用户名直接用
+  if (/^[a-zA-Z0-9_]+$/.test(username)) {
+    return username + DIARY_DOMAIN;
+  }
+  // 含中文等非 ASCII 字符 → 编码成合法邮箱
+  const hex = Array.from(username).map(c => c.codePointAt(0).toString(16)).join('');
+  return 'u' + hex.substring(0, 40) + DIARY_DOMAIN;
 }
 
-function emailToUsername(email) {
-  if (email && email.endsWith(DIARY_DOMAIN)) {
-    return email.slice(0, -DIARY_DOMAIN.length);
+function getDisplayUsername(user) {
+  // 优先从注册时保存的 metadata 中取原始用户名
+  if (user?.user_metadata?.username) return user.user_metadata.username;
+  // 回退：从邮箱提取（仅限纯英文用户名）
+  const email = user?.email || '';
+  if (email.endsWith(DIARY_DOMAIN)) {
+    const local = email.slice(0, -DIARY_DOMAIN.length);
+    if (/^[a-zA-Z0-9_]+$/.test(local)) return local;
   }
   return email || '';
 }
@@ -343,7 +354,7 @@ async function handleRegister() {
 
   if (!username || !password) { showToast('⚠️ 请填写用户名和密码', 'error'); return; }
   if (username.length < 3 || username.length > 20) { showToast('⚠️ 用户名需要 3-20 个字符', 'error'); return; }
-  if (!/^[a-zA-Z0-9_一-龥]+$/.test(username)) { showToast('⚠️ 用户名只能包含中英文、数字和下划线', 'error'); return; }
+  if (!/^[a-zA-Z0-9_一-鿿]+$/.test(username)) { showToast('⚠️ 用户名只能包含中英文、数字和下划线', 'error'); return; }
   if (password.length < 6) { showToast('⚠️ 密码至少需要 6 位', 'error'); return; }
   if (password !== password2) { showToast('⚠️ 两次输入的密码不一致', 'error'); return; }
 
@@ -830,7 +841,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check existing session
   const user = await getCurrentUser();
   if (user) {
-    document.getElementById('display-username').textContent = emailToUsername(user.email);
+    document.getElementById('display-username').textContent = getDisplayUsername(user);
     document.getElementById('auth-view').style.display = 'none';
     document.getElementById('diary-view').style.display = 'block';
     onDiaryReady();
