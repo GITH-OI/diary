@@ -153,6 +153,33 @@ textarea { min-height: 180px; resize: vertical; line-height: 1.8; }
   .search-box { flex-direction: column; }
   .auth-container { margin: 20px auto; padding: 24px 20px; }
 }
+
+/* ===== Mini Calendar ===== */
+.mini-calendar { margin-bottom: 20px; }
+.calendar-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; font-weight: 700; color: var(--accent-dark);
+}
+.calendar-nav button {
+  background: none; border: 1px solid var(--border); border-radius: 6px;
+  padding: 4px 10px; cursor: pointer; font-size: 16px; color: var(--text);
+  transition: all 0.2s;
+}
+.calendar-nav button:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+.calendar-grid .day-header { font-size: 12px; color: var(--text-light); padding: 4px 0; font-weight: 600; }
+.calendar-grid .day-cell {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; font-size: 14px; cursor: default; transition: all 0.2s;
+  color: #ccc; font-weight: 300;
+}
+.calendar-grid .day-cell.has-diary {
+  color: #222; font-weight: 700; cursor: pointer;
+  background: rgba(196,149,106,0.1);
+}
+.calendar-grid .day-cell.has-diary:hover { background: var(--accent); color: #fff; }
+.calendar-grid .day-cell.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.calendar-grid .day-cell.other-month { visibility: hidden; }
 </style>
 </head>
 <body>
@@ -243,6 +270,17 @@ textarea { min-height: 180px; resize: vertical; line-height: 1.8; }
 
       <!-- Tab 3: Search -->
       <div class="tab-panel" id="panel-search">
+        <!-- Mini Calendar -->
+        <div class="form-card mini-calendar">
+          <div class="section-title">🗓️ 日记日历</div>
+          <div class="calendar-nav">
+            <button id="cal-prev">◀</button>
+            <span id="cal-title"></span>
+            <button id="cal-next">▶</button>
+          </div>
+          <div class="calendar-grid" id="cal-grid"></div>
+        </div>
+
         <div class="form-card">
           <div class="section-title">📅 按日期查找</div>
           <div class="form-group"><label>选择日期</label><div style="display:flex;gap:10px;"><input type="date" id="search-date" style="flex:1;"><button class="btn btn-primary btn-sm" id="btn-search-date">查找</button></div></div>
@@ -661,6 +699,7 @@ function switchTab(tabName) {
   if (btn) btn.classList.add('active');
   if (panel) panel.classList.add('active');
   if (tabName === 'supplement') loadSupplementOriginal();
+  if (tabName === 'search') refreshCalendar();
 }
 
 // ============================================================
@@ -758,6 +797,70 @@ async function saveSupplement() {
   } catch (e) {
     showToast('⚠️ 保存失败：' + (e.message || '未知错误'), 'error');
   }
+}
+
+// ============================================================
+// Mini Calendar
+// ============================================================
+let calYear, calMonth, diaryDates = new Set();
+
+async function loadDiaryDates() {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const { data } = await supabaseClient
+    .from(TABLE)
+    .select('date')
+    .eq('user_id', user.id);
+  diaryDates = new Set((data || []).map(r => r.date));
+}
+
+function renderCalendar() {
+  document.getElementById('cal-title').textContent = calYear + '年 ' + (calMonth + 1) + '月';
+
+  const headers = ['日', '一', '二', '三', '四', '五', '六'];
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = headers.map(h => `<div class="day-header">${h}</div>`).join('');
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date().toISOString().split('T')[0];
+
+  // Fill blank cells before day 1
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(createDayCell('', 'other-month'));
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const hasDiary = diaryDates.has(dateStr);
+    const isToday = dateStr === today;
+    const cell = createDayCell(d, [
+      hasDiary ? 'has-diary' : '',
+      isToday ? 'today' : ''
+    ].filter(Boolean).join(' '), dateStr);
+    if (hasDiary) {
+      cell.title = '点击查看 ' + dateStr + ' 的日记';
+      cell.addEventListener('click', () => {
+        document.getElementById('search-date').value = dateStr;
+        searchByDate();
+        document.getElementById('search-date-results').scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+    grid.appendChild(cell);
+  }
+}
+
+function createDayCell(text, className, dateStr) {
+  const cell = document.createElement('div');
+  cell.className = 'day-cell ' + (className || '');
+  cell.textContent = text;
+  if (dateStr) cell.dataset.date = dateStr;
+  return cell;
+}
+
+async function refreshCalendar() {
+  await loadDiaryDates();
+  renderCalendar();
 }
 
 // ============================================================
@@ -861,6 +964,27 @@ function onDiaryReady() {
       else if (currentTab === 'supplement') saveSupplement();
     }
   });
+
+  // Calendar navigation
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  document.getElementById('cal-prev').addEventListener('click', () => {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    refreshCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', () => {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    refreshCalendar();
+  });
+
+  // Refresh calendar after save/delete
+  const origRefreshWrite = refreshWriteSaved;
+  refreshWriteSaved = async function(date) { await origRefreshWrite(date); refreshCalendar(); };
+  const origSuppRefresh = refreshSupplementSaved;
+  refreshSupplementSaved = async function(date) { await origSuppRefresh(date); refreshCalendar(); };
+  const origHandleDelete = handleDelete;
+  handleDelete = async function(docId, date) { await origHandleDelete(docId, date); refreshCalendar(); };
 
   switchTab('write');
 }
