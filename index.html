@@ -712,7 +712,10 @@ async function saveDiary() {
   if (!content) { showToast('⚠️ 请输入日记内容', 'error'); return; }
 
   const attachments = await writeFileMgr.processFiles();
-  const entry = { entryId: generateId(), type: 'original', content, attachments };
+  // 当天写=原创，历史日期补写=补充
+  const today = new Date().toISOString().split('T')[0];
+  const entryType = date === today ? 'original' : 'supplement';
+  const entry = { entryId: generateId(), type: entryType, content, attachments };
 
   try {
     await saveEntry(date, entry);
